@@ -1,0 +1,21 @@
+---
+- name: start httpd service
+  service:
+    name: httpd
+    state: started
+  tags: always
+#handlers for ubuntu
+- name: Reload Apache
+  service:
+       name: apache2
+       state: reloaded
+
+- name: Restart Apache
+  service:
+       name: apache2
+       state: restarted
+- name: Restart mysql
+  service:
+       name: mysql
+       state: restarted
+

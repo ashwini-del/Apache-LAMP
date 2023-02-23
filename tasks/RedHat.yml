@@ -1,0 +1,123 @@
+#check if httpd installed
+    - name: Check if httpd is installed
+      command: which httpd
+      register: httpd_check
+      ignore_errors: yes
+    - name: show if httpd alreday exist
+      debug:
+        var: httpd_check.stdout
+      when: httpd_check.rc == 0
+# check version of existing httpd
+    - name: Check version of existing httpd
+      command: httpd -v
+      ignore_errors: yes
+      changed_when: false
+      register: httpd_present
+#display the version of existing version
+    - name: Display httpd version
+      debug:
+        msg: httpd Version is "{{ httpd_present.stdout }}"
+      when: httpd_check.rc == 0
+# New httpd installation started 
+#installing httpd on Debian
+    - name: "Print execution results "
+      debug:
+        msg:  HTTPD Installation - started"
+      when: "httpd_check.rc != 0"
+#httpd installation
+    - name: Install httpd
+      yum: name=httpd state=present
+      when: "httpd_check.rc != 0"
+
+# show installation messaged
+    - name: "Print execution results"
+      debug:
+        msg:  httpd Installation - Successful"
+    # check version of newly installed apache2
+    - name: Checking httpd version
+      command: httpd -v
+      ignore_errors: yes
+      changed_when: false
+      register: new_httpd_installed
+  #show newly installd httpd version
+    - name: Display httpd version
+      debug:
+        msg: httpd Version is "{{ new_httpd_installed.stdout }}"
+      when: new_httpd_installed.rc == 0
+#Create httpd conf template for httpd on  RedHat
+
+    # - name: "Create httpd conf template for httpd on  RedHat"
+    #   templates:
+    #   src: httpd.conf.tmpl
+    #   dest: /etc/httpd/conf/httpd.conf
+    # - name: "Create vhost for httpd"
+    #   templates:
+    #   src: vhost.conf.tmpl
+    #   dest: /etc/httpd/conf.d/{{ domain_name }}.conf
+# # create Document root
+    # - name: "Create documentroot for httpd on  RedHat"
+    #   file:
+    #   path: "{{ doc_root }}/{{ domain_name }}/"
+    #   state: directory
+    - name: Check for user permission
+      set_fact:
+        install_firewall: "{{ install_firewall | default(install) }}"
+    - name: Install firewalld on RedHat
+      yum: 
+        name: firewalld
+        state: present
+      when: install_firewall == 'yes'
+    
+
+    - name: Enable the Service on RedHat
+      systemd:
+        name: firewalld
+        enabled: yes 
+    - name: Start firewalld  RedHat
+      service: 
+        name: firewalld
+        state: started
+
+    - name: Configuring firewall for  httpd on RedHat
+      firewalld:
+        port: 80/tcp
+        zone: public
+        permanent: yes
+        immediate: yes
+        state: enabled
+
+
+# Ensure httpd service is runningss
+    - name: Ensure httpd service is running
+      service:
+        name: httpd
+        state: started
+      notify:
+        - start httpd service
+
+  # check if httpd service is active
+    - name: Check if httpd is running
+      command: systemctl is-active httpd
+      ignore_errors: yes
+      changed_when: false
+      register: httpd_status
+# disply status of httpd service
+    - name: status of service
+      debug:
+        var: httpd_status.stdout
+  # print Apache HTTPd logs
+    - name: Print  HTTPd logs
+      shell: journalctl -u httpd --no-pager
+      when: httpd_status.stdout == "active"
+      register: httpd_logs
+      changed_when: false
+#print Apache HTTPd logs
+    - name: Display logs
+      debug:
+        var: httpd_logs.stdout
+#print log if httpd not active
+ 
+    - name: Print error message
+      debug:
+        msg: "httpd service is inactive. Logs cannot be printed."
+      when: httpd_status.stdout != 'active'

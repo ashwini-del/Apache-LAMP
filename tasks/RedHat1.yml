@@ -1,0 +1,133 @@
+---
+# check the HTTPD version
+- name: Checking apache2 version
+  command: httpd -v
+  ignore_errors: yes
+  changed_when: false
+  register: httpd_present
+# Disply php version
+- name: Display httpd version
+  debug:
+    msg: httpd Version is "{{ httpd_present.stdout }}"
+
+# check if httpd is installed or not
+- name:  Ensure if httpd is installed on Debian Host
+  register: httpd_present
+  debug:
+    msg: "httpd is not present"
+  when: httpd_present.stdout == ''
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#httpd installation
+- name: "Print execution results"
+  debug:
+    msg: "{{ Prefix }} - HTTPD Installation - started"
+- name: "Webserver Package Installation for RedHat"
+  yum:
+    name: httpd
+    state: present
+
+- name: "Create httpd conf template for httpd on  RedHat"
+  template:
+   src: httpd.conf.tmpl
+   dest: /etc/httpd/conf/httpd.conf
+- name: "Create vhost for httpd"
+  template:
+   src: vhost.conf.tmpl
+   dest: "/etc/httpd/conf.d/{{ domain_name }}.conf"
+# # create Document root
+# - name: "Create documentroot for httpd on  RedHat"
+#   file:
+#    path: "{{ doc_root }}/{{ domain_name }}/"
+#    state: directory
+#add default page of php
+- name: "Create test.php and test.html for test page on RedHat"
+  copy:
+    src: "{{ item }}"
+    dest: "{{ doc_root }}/{{ domain_name }}/"
+  with_items:
+    - test.php
+    - test.html
+#Installing furewalld and enable service
+- name: Install firewalld on RedHat
+  yum: 
+    name: firewalld
+    state: present
+- name: Start firewalld  RedHat
+  service: 
+    name: firewalld
+    state: started
+- name: Enable the Service on RedHat
+  systemd:
+    name: firewalld
+    enabled: yes 
+
+- name: Configuring firewall for  httpd on RedHat
+  firewalld:
+    port: 80/tcp
+    zone: public
+    permanent: yes
+    immediate: yes
+    state: enabled
+# check if httpd is installed
+- name: Shell command to check if httpd process is running on RedHat
+  shell: ps aux | grep {{ httpd_packages }}
+  register: httpd_status
+- name: Check if httpd is installed on RedHat
+  debug:
+    msg: "{{ Prefix }} - HTTPD Installation - successful"
+  when: httpd_status.stdout != ""
+#restart mysql and httpd
+  notify:
+    - Restarting-enabling-httpd
+- name: check service
+  service_facts:
+
+
+
+
+# check the httpd version
+    - name: Checking httpd version
+      shell: httpd -v
+      ignore_errors: yes
+      changed_when: false
+      register: httpd_present
+      when: httpd_present.stdout != ''
+    # Disply httpd version
+    - name: Display httpd version
+      debug:
+        msg: httpd Version is "{{ httpd_present.stdout }}"
+    # check if php is installed or not
+    - name:  Ensure if httpd is installed on Debian Host
+      register: httpd_present
+      debug:
+        msg: httpd Installation - successful"
+      when: httpd_present.stdout != ''  # if result not equal to black then it is install
+     # when: apache2_present.stdout == ''   # if result equal to blank then not install this meanse apache2 not present so if not present it skip takd
+      # check if the first your on new ubutu system above code only cheking installation
+    - name: Check if httpd is running
+      command: systemctl status httpd
+      ignore_errors: yes
+      changed_when: false
+      register: service_httpd_status
+
+    - name: Report status of Apache
+      debug:
+        msg: |
+          Status of httpd service ---
+          Output of `systemctl status httpd`:
+          {{ service_httpd_status.stdout }}
+          {{ service_httpd_status.stderr }}
+

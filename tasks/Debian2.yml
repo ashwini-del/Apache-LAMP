@@ -1,0 +1,130 @@
+    - name: Check if Apache2 is installed
+      command: dpkg -s apache2
+      register: apache_check
+
+    - name: Install Apache2
+      apt: name=apache2 state=present
+      when: apache_check.rc != 0
+# ##################################################
+# # Ansible  Playbooks: LAMP on Ubuntu 20.04
+# ##################################################
+# check the apache2 version
+    - name: Checking apache2 version
+      command: apache2 -v
+      ignore_errors: yes
+      changed_when: false
+      register: apache2_present
+      # when: apache2_present.stdout != ''
+    # Disply apache2 version
+    - name: Display apache2 version
+      debug:
+        msg: apache2 Version is "{{ apache2_present.stdout }}"
+    # check if apache2 is installed or not
+    - name:  Ensure if apache2 is installed on Debian Host
+      register: apache2_present
+      debug:
+        msg: "apache2 is not present"
+      when: apache2_present.stdout == ''
+
+# install all prereqisites and update Debian
+    - name: Install prerequisites on Debian
+      apt: update_cache=yes state=latest force_apt_get=yes
+    - name: Installation of software-properties-common on Debian
+      apt: name=software-properties-common
+#installing Apache2 on Debian
+    - name: "Print execution results"
+      debug:
+        msg:  Apache2 Installation - started"
+#apache installation
+    - name: Install Apache on Debian
+      apt: name=apache2 update_cache=yes state=latest
+    #   ignore_errors: yes
+    #   changed_when: false
+    # - debug:
+    #       msg: "{{ apache2_present }}"
+    #   when: apache2_present.stdout ==''
+# # Create Document root for apache2 on Debian
+#     - name: Create document root
+#       file:
+#         path: "/var/www/html"
+#         state: directory
+#         owner: root
+#         mode: '0755'
+# setup apache2 virtualhost on Debian
+    - name: Set up Apache2 virtualhost on Debian
+      template:
+        src: apache.conf.j2
+        dest: "/etc/apache2/sites-available/"
+# eanling ufw
+    - name: Enabling UFW, allowing all traffic
+      ufw:
+        state: enabled
+        policy: allow
+      register: ufw_enable
+    - debug:
+          msg: "{{ ufw_enable }}"
+#Check if ufw status is inactive
+    - name: check whether ufw status is active
+      shell: ufw status
+      changed_when: false
+      register: ufw_check
+    - debug:
+          msg: "{{ ufw_check }}"
+    - name: do something if ufw is enabled
+      shell: echo
+      when: "'active' not in ufw_check.stdout" 
+
+
+#ufw allow port fro apache2 on Debian
+    - name: "UFW - Allow HTTP on port {{ http_port }} for apache2 on Debian"
+      ufw:
+        rule: allow
+        port: "{{ http_port }}"
+        proto: tcp 
+ #check if apache2 is installed on Debian
+    - name: Shell command to check if apache2 process is running on Debian
+      shell: ps aux | grep {{ apache_packages }}
+      register: apache2_status
+    - name: Check if apache2 is installed
+      debug:
+        msg:  apache2 Installation - successful"
+      when: apache2_status.stdout != ""
+     # when: apache2_status == '' == failes
+    
+# check the apache2 version
+    - name: Checking apache2 version
+      shell: apache2 -v
+      ignore_errors: yes
+      changed_when: false
+      register: apache2_present
+      when: apache2_present.stdout != ''
+    # Disply php version
+    - name: Display apache2 version
+      debug:
+        msg: apache2 Version is "{{ apache2_present.stdout }}"
+    # check if php is installed or not
+    - name:  Ensure if apache2 is installed on Debian Host
+      register: apache2_present
+      debug:
+        msg: apache2 Installation - successful"
+      when: apache2_present.stdout != ''  # if result not equal to black then it is install
+     # when: apache2_present.stdout == ''   # if result equal to blank then not install this meanse apache2 not present so if not present it skip takd
+      # check if the first your on new ubutu system above code only cheking installation
+    - name: Check if Apache is running
+      command: systemctl status apache2
+      ignore_errors: yes
+      changed_when: false
+      register: service_apache_status
+
+    - name: Report status of Apache
+      debug:
+        msg: |
+          Status of apache2 service ---
+          Output of `systemctl status apache2`:
+          {{ service_apache_status.stdout }}
+          {{ service_apache_status.stderr }}
+   #   when: service_apache_status.rc != '' == active | service_apache_status.rc == '' == inactive
+    #  when: service_apache_status.rc !== "" # = it skip when serive is active 
+    #   when: service_apache_status.rc != ''  # active
+      
+ 

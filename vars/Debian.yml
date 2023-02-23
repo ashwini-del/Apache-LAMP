@@ -1,0 +1,12 @@
+# variable for Debian family
+http_port: "80"
+disable_default: true
+db_user: "root"
+db_pass: "root"
+db_name: "root"
+http_host: "/var/www/html"
+apache_packages: "apache2"
+mysql_packages : "mysql"
+php_packages: "php"
+Prefix: "LAMP"
+

@@ -1,0 +1,16 @@
+---
+#variable for Redhat family
+httpd_port: "80"
+php_version: "php72"
+doc_root: "/var/www/html"
+domain_name: "apache.test"
+httpd_user: "user"
+httpd_group: "group"
+httpd_packages: "httpd"
+php_version: "7.4"
+mysql_packages: "mysql"
+php_packages: "php"
+Prefix: "LAMP"
+install_firewall: "{{ lookup('env', 'install_firewall') }}"
+
+

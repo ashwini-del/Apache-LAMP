@@ -1,0 +1,9 @@
+<VirtualHost *:{{ httpd_port }}>
+ServerName {{ domain_name }}
+DocumentRoot {{ doc_root }}/{{ domain_name }}
+DirectoryIndex index.php index.html
+ErrorLog  logs/{{ domain_name }}_errlog
+CustomLog logs/{{ domain_name }}_cstmlog common
+</VirtualHost>
+
+

@@ -1,0 +1,124 @@
+#check if apache installed
+    - name: Check if Apache2 is installed
+      command: dpkg -s apache2
+      register: apache2_check
+      ignore_errors: yes
+    - name: show if apache2 alreday exist
+      debug:
+        msg: Apache2 is Already exist
+      when: apache2_check.rc == 0
+    - name: show if apache2 not exist
+      debug:
+        msg: Apache2 is Already exist
+      when: apache2_check.rc != 0
+# check version of existing apache2
+    - name: Check of version of existing apache2
+      command: apache2 -v
+      ignore_errors: yes
+      changed_when: false
+      register: apache2_present
+#display the version of existing version
+    - name: Display apache2 version
+      debug:
+        msg: apache2 Version is "{{ apache2_present.stdout }}"
+      when: apache2_check.rc == 0
+# show logs of apache2 if already exitst
+    # - name: check logs existing apache2
+    #   debug:
+    #     msg: Logs of existing apache "{{ apache2_check.stdout }}"
+    #   when: apache2_check.rc == 0
+# New apache installation started 
+# install all prereqisites and update Debian
+    - name: update cache an install prerequisites on Debian
+      apt: update_cache=yes state=latest force_apt_get=yes
+      when: apache2_check.rc != 0
+    - name: Installation of software-properties-common on Debian
+      apt: name=software-properties-common
+      when: apache2_check.rc != 0
+#installing Apache2 on Debian
+    - name: "Print execution results"
+      debug:
+        msg:  Apache2 Installation - started"
+      when: apache2_check.rc != 0
+#apache installation
+    - name: Install Apache on Debian
+      apt: name=apache2 update_cache=yes state=latest 
+      when: apache2_check.rc != 0
+# check version of newly installed apache2
+    - name: Checking apache2 version
+      command: apache2 -v
+      ignore_errors: yes
+      changed_when: false
+      register: new_apache2_installed
+#show newly installd apache2 version
+    - name: Display apache2 version
+      debug:
+        msg: apache2 Version is "{{ new_apache2_installed.stdout }}"
+      when: new_apache2_installed.rc == 0
+# show installation messaged
+    - name: "Print execution results"
+      debug:
+        msg:  Apache2 Installation - Successful"
+      when: new_apache2_installed.rc == 0
+# setup apache2 virtualhost on Debian
+
+    - name: Set up Apache2 virtualhost on Debian
+      template:
+        src: apache.conf.j2
+        dest: "/etc/apache2/sites-available/"
+# eanling ufw
+    - name: Enabling UFW, allowing all traffic
+      ufw:
+        state: enabled
+        policy: allow
+      register: ufw_enable
+    - debug:
+          msg: "{{ ufw_enable }}"
+#Check if ufw status is inactive
+    - name: check whether ufw status is active
+      shell: ufw status
+      changed_when: false
+      register: ufw_check
+    - debug:
+          msg: "{{ ufw_check }}"
+#ufw allow port for apache2 on Debian
+    - name: "UFW - Allow HTTP on port {{ http_port }} for apache2 on Debian"
+      ufw:
+        rule: allow
+        port: "{{ http_port }}"
+        proto: tcp
+      # when: "ufw_status.stdout.find('active') != -1"
+      notify:
+       - Reload Apache
+       - Restart Apache
+  # check if apache2 service
+    - name: Get Apache service status
+      shell: service apache2 status
+      register: apache_status
+      ignore_errors: yes
+      changed_when: false
+
+    - name: Display Apache service status
+      debug:
+        var: apache_status.stdout
+# print error message if apache service not started
+    - name: Get Apache2 service status
+      shell: systemctl is-active apache2
+      register: apache2_status
+    - name: Print error if Apache2 is not running
+      debug:
+        msg: "Apache2 is not running, please check the service."
+      when: apache2_status.stdout != "active"
+    - name: Print if Apache2 is running
+      debug:
+        var: apache2_status.stdout
+      when: apache2_status.stdout == "active"
+
+    # - name: Display Apache error logs
+    #   shell: cat /var/log/apache2/error.log
+    #   register: apache_error_logs
+
+    # - name: Display Apache error logs
+    #   debug:
+    #     var: apache_error_logs.stdout
+

@@ -1,0 +1,11 @@
+---
+    #include variable files for ubuntu and linux
+
+- name: Include OS-specific variables.
+  include_vars: "{{ ansible_os_family }}.yml"
+
+#include amazon_linx file and ubntu file
+- name: include OS-specific Task 
+  include_tasks: "{{ ansible_os_family }}.yml"
+
+
